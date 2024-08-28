@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `CompanySettings` MODIFY `vat` DOUBLE NULL,
+    MODIFY `industryType` ENUM('SERVICE', 'RETAIL', 'WHOLESALE', 'MANUFACTURING') NULL;

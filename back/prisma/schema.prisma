@@ -1,0 +1,563 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  companyId         Int
+  company           Company   @relation(fields: [companyId], references: [id])
+  name              String?
+  username          String
+  @@unique(fields: [companyId, username])
+  password          String    @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userHasRoles      UserHasRole[]
+  sales             Sale[]
+  purchases         Purchase[]
+  userLogs          UserLog[]
+  problemsAssigned  ProblemAssignee[]
+}
+
+model Permission {
+  id                  Int       @id @default(autoincrement())
+  name                String    @unique       
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  RoleHasPermissions  RoleHasPermission[]
+}
+
+model Role {
+  id                  Int       @id @default(autoincrement())
+  companyId           Int
+  company             Company   @relation(fields: [companyId], references: [id])
+  name                String
+  @@unique(fields: [companyId, name])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  userHasRoles        UserHasRole[]
+  RoleHasPermissions  RoleHasPermission[]
+}
+
+model UserHasRole {
+  id        Int       @id @default(autoincrement())
+  roleId    Int
+  userId    Int
+  role      Role      @relation(fields: [roleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model RoleHasPermission {
+  id            Int             @id @default(autoincrement())
+  permissionId  Int
+  roleId        Int
+  role          Role            @relation(fields: [roleId], references: [id])
+  permission    Permission      @relation(fields: [permissionId], references: [id])
+}
+
+model Category {
+  id        Int     @id @default(autoincrement())
+  companyId Int
+  company   Company @relation(fields: [companyId], references: [id])
+  name      String  
+  @@unique(fields: [companyId, name])
+  deleted   Int     @default(0)
+  products  Product[]
+}
+
+model Brand {
+  id        Int     @id @default(autoincrement())
+  companyId Int
+  company   Company   @relation(fields: [companyId], references: [id])
+  name      String 
+  @@unique(fields: [name, companyId])
+  deleted   Int     @default(0)
+  products  Product[]
+}
+
+model Product {
+  id                Int       @id @default(autoincrement())
+  companyId         Int
+  company           Company   @relation(fields: [companyId], references: [id])
+  brandId           Int?
+  brand             Brand?    @relation(fields: [brandId], references: [id])
+  categoryId        Int
+  category          Category  @relation(fields: [categoryId], references: [id])
+  buy_price         Float     @default(0.00)
+  wholesale_price   Float     @default(0.00)
+  retail_price      Float     @default(0.00)
+  unity             String?
+  stockAlert        Float?    @default(50.00)
+  description       String?   @db.Text
+  deleted           Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  productCodes      ProductCodes[]
+  inventories       Inventory[]
+  saleProducts      SaleProduct[]
+  purchaseProducts  PurchaseProduct[]
+  saleServiceProducts SaleServiceProduct[]
+}
+
+model ProductCodes {
+  id        Int     @id @default(autoincrement())
+  code      String
+  productId Int
+  @@unique(fields: [productId, code])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Service {
+  id           Int           @id @default(autoincrement())
+  companyId    Int
+  name         String?       @db.Text
+  description  String?       @db.Text
+  sell_price   Float         @default(0)
+  deleted      Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  company      Company       @relation(fields: [companyId], references: [id])
+  saleServices SaleService[]
+  @@index([companyId], map: "Service_companyId_fkey")
+}
+
+model Inventory {
+  id                  Int               @id @default(autoincrement())
+  ref                 String
+  price               Float             @default(0.00)
+  quantity            Float             @default(0.00)
+  productId           Int
+  product             Product           @relation(fields: [productId], references: [id])
+  purchaseProductId   Int?      
+  purchaseProduct     PurchaseProduct?  @relation(fields: [purchaseProductId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deleted             Int               @default(0)
+  // sales               Sale[]
+  inventoryOperations InventoryOperation[]
+  refundOperations    RefundOperation[]
+}
+
+model Concern {
+  id            Int       @id @default(autoincrement())
+  companyId     Int
+  company       Company   @relation(fields: [companyId], references: [id])
+  name          String?
+  surname       String?
+  companyName   String?
+  email         String?
+  address       String?
+  zip           String?
+  city          String?
+  country       String?
+  ice           String?
+  rc            String?
+  activity      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deleted       Int?      @default(0)
+  type          ConcernType
+  purchases     Purchase[]
+  sales         Sale[]
+}
+
+enum ConcernType {
+  Client
+  Provider
+  Both
+}
+
+model Purchase {
+  id                Int       @id @default(autoincrement())
+  companyId         Int
+  company           Company   @relation(fields: [companyId], references: [id])
+  concernId         Int
+  concern           Concern   @relation(fields: [concernId], references: [id])
+  vat               Float     @default(20.00)
+  shipped           Int       @default(0)
+  paymentMethod     String?   
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            Int?
+  user              User?     @relation(fields: [userId], references: [id])
+  deleted           Int
+  documents         PurchaseDocument[]
+  purchaseProducts  PurchaseProduct[]
+  purchaseOrders    PurchasePurchaseOrder[]
+  purchasePayments  PurchasePayment[]
+}
+
+model PurchasePurchaseOrder {
+  id          Int       @id @default(autoincrement())
+  purchaseId  Int
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PurchaseDocument {
+  id          Int       @id @default(autoincrement())
+  name        String?
+  file        String
+  purchaseId  Int
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Sale {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id])
+  concernId       Int
+  concern         Concern   @relation(fields: [concernId], references: [id])
+  vat             Float     @default(20.00)
+  discount        Int?      @default(0)
+  paid            Float     @default(0.00)
+  shipped         Int       @default(0)
+  paymentMethod   String?   
+  description     String?   
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+  deleted         Int       @default(0)
+  userId          Int?
+  user            User?     @relation(fields: [userId], references: [id])
+  saleType        SaleType  @default(RETAIL)
+  deliveryForms   DeliveryForm[]
+  saleProducts    SaleProduct[]
+  purchaseOrders  SalePurchaseOrder[]
+  salePayments    SalePayment[]
+  saleServices    SaleService[]
+}
+
+enum SaleType {
+  SERVICE
+  RETAIL
+  WHOLESALE
+  MANUFACTURING
+}
+
+model SaleService {
+  id           Int      @id @default(autoincrement())
+  serviceId    Int
+  saleId       Int
+  quantity     Float
+  price        Float?
+  servicePrice Float    @default(0)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  description  String   @db.Text
+  sale         Sale     @relation(fields: [saleId], references: [id])
+  service      Service  @relation(fields: [serviceId], references: [id])
+  saleProducts SaleServiceProduct[]
+  @@index([saleId], map: "SaleService_saleId_fkey")
+  @@index([serviceId], map: "SaleService_serviceId_fkey")
+}
+
+model SaleServiceProduct {
+  id            Int         @id  @default(autoincrement())
+  productId     Int?
+  saleServiceId Int
+  reference     String?
+  description   String?     @db.Text
+  price         Float?
+  quantity      Float?
+  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime    @default(now())
+  saleService   SaleService @relation(fields: [saleServiceId], references: [id])
+  product       Product?    @relation(fields: [productId], references: [id])
+}
+
+model SalePurchaseOrder {
+  id        Int                         @id @default(autoincrement())
+  saleId    Int                         @unique
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime          @updatedAt
+  sale      Sale                        @relation(fields: [saleId], references: [id])
+  documents SalePurchaseOrderDocument[]
+}
+
+model SalePurchaseOrderDocument {
+  id                  Int               @id @default(autoincrement())
+  name                String?
+  file                String
+  salePurchaseOrderId Int
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  salePurchaseOrder   SalePurchaseOrder @relation(fields: [salePurchaseOrderId], references: [id])
+
+  @@index([salePurchaseOrderId], map: "SalePurchaseOrderDocument_salePurchaseOrderId_fkey")
+}
+
+model Invoice {
+  id        Int       @id @default(autoincrement())
+  paid      Float
+  createdAt DateTime  @default(now())
+  refunds   Refund[]
+  deliveryForms DeliveryForm[]
+}
+
+model DeliveryForm {
+  id        Int       @id @default(autoincrement())
+  saleId    Int
+  sale      Sale      @relation(fields: [saleId], references: [id])
+  invoiceId Int?
+  invoice   Invoice?   @relation(fields: [invoiceId], references: [id])
+  createdAt DateTime  @default(now())
+  refunds   Refund[]
+}
+
+model InventoryOperation {
+  id            Int         @id @default(autoincrement())
+  saleProductId Int
+  inventoryId   Int?
+  quantity      Float
+  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime    @default(now())
+  saleProduct   SaleProduct @relation(fields: [saleProductId], references: [id])
+  inventory     Inventory?  @relation(fields: [inventoryId], references: [id])
+}
+
+model SaleProduct {
+  id                  Int             @id @default(autoincrement())
+  productId           Int
+  product             Product         @relation(fields: [productId], references: [id])
+  saleId              Int
+  sale                Sale            @relation(fields: [saleId], references: [id])
+  quantity            Float
+  price               Float
+  productPrice        Float           @default(0)
+  type                SaleProductType @default(wholesale_price) // deprecated
+  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime        @default(now())
+  InventoryOperations InventoryOperation[]
+  refundOperations    RefundOperation[]
+}
+
+enum SaleProductType {
+  retail_price
+  wholesale_price
+}
+
+model PurchaseProduct {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id])
+  purchaseId  Int
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  quantity    Float
+  price       Float
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+  inventories Inventory[]
+}
+
+model Company {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  ICE         String    @unique
+  country     String?
+  city        String?
+  address     String?   @db.Text
+  zip         String?
+  invoiceLink String?   @db.Text // @deprecated
+  logoLink    String?   @db.Text
+  footerLink  String?   @db.Text
+  active      Int       @default(1)
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+  users       User[]
+  roles       Role[]
+  brands      Brand[]
+  categories  Category[]
+  concerns    Concern[]
+  products    Product[]
+  sales       Sale[]
+  purchases   Purchase[]
+  userLogs    UserLog[]
+  complaints  Complaint[]
+  services    Service[]
+  documents   Document[]
+  Settings    CompanySettings?
+}
+
+model Refund {
+  id                Int           @id @default(autoincrement())
+  deliveryFormId    Int?
+  deliveryForm      DeliveryForm? @relation(fields: [deliveryFormId], references: [id])
+  invoiceId         Int?
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id])
+  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime      @default(now())
+  refundOperations  RefundOperation[]
+}
+
+model RefundOperation {
+  id            Int           @id @default(autoincrement())
+  quantity      Float
+  refundId      Int
+  refund        Refund        @relation(fields: [refundId], references: [id])
+  inventoryId   Int?
+  inventory     Inventory?    @relation(fields: [inventoryId], references: [id])
+  saleProductId Int?
+  saleProduct   SaleProduct?  @relation(fields: [saleProductId], references: [id])
+  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+}
+
+model PurchasePayment {
+  id            Int           @id @default(autoincrement())
+  purchaseId    Int
+  purchase      Purchase      @relation(fields: [purchaseId], references: [id])
+  amount        Float
+  date          DateTime      @default(now())
+  paymentMethod PaymentMethod  
+  description   String?  
+  userId        Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+}
+
+model SalePayment {
+  id              Int           @id @default(autoincrement())
+  saleId          Int
+  sale            Sale          @relation(fields: [saleId], references: [id])
+  amount          Float
+  date            DateTime      @default(now())
+  paymentMethod   PaymentMethod
+  description     String?
+  isFixedPayment  Boolean       @default(false)
+  userId          Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  documents       SalePaymentDocument[]
+}
+
+model SalePaymentDocument {
+  id            Int           @id @default(autoincrement())
+  salePaymentId Int
+  salePayment   SalePayment   @relation(fields: [salePaymentId], references: [id])
+  documentUrl   String
+  mimetype      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum PaymentMethod {
+  PromissoryNote
+  BankTransfer    
+  Check
+  Cash
+}
+
+model UserLog {
+  id        Int @id @default(autoincrement())
+  companyId Int
+  userId    Int
+  method    UserLogMethods
+  tableName String
+  rowId     Int
+  oldRow    String?   @db.Text
+  newRow    String?   @db.Text
+  createdAt DateTime  @default(now())
+  company   Company   @relation(fields: [companyId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model CompanySettings {
+  id            Int                 @id @default(autoincrement())
+  companyId     Int                 @unique
+  vat           Float?
+  industryType  CompanyIndustryType? 
+  updatedAt     DateTime            @updatedAt
+  createdAt     DateTime            @default(now())
+  company       Company             @relation(fields: [companyId], references: [id])
+}
+
+enum CompanyIndustryType {
+  SERVICE
+  RETAIL
+  WHOLESALE
+  MANUFACTURING
+}
+
+enum UserLogMethods {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+// Claim system
+model Complaint {
+  id          Int               @id @default(autoincrement())
+  description String?           @db.Text
+  priority    ComplaintPriority @default(LOW)
+  companyId   Int
+  company     Company           @relation(fields: [companyId], references: [id])
+  status      ComplaintStatus   @default(OPEN) 
+  openDate    DateTime          @default(now())
+  closeDate   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  problems    Problem[]
+}
+
+model Problem {
+  id            Int           @id @default(autoincrement())
+  description   String?       @db.Text
+  complaintId   Int
+  complaint     Complaint     @relation(fields: [complaintId], references: [id])
+  status        ProblemStatus @default(OPEN)
+  openDate      DateTime      @default(now())
+  closeDate     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  asignees      ProblemAssignee[]
+}
+
+model ProblemAssignee {
+  id        Int     @id @default(autoincrement())
+  problemId Int
+  userId    Int
+  problem   Problem @relation(fields: [problemId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ComplaintStatus {
+  OPEN
+  SOLVED
+}
+
+enum ProblemStatus {
+  OPEN
+  SOLVED
+}
+
+model Document {
+  id        Int       @id @default(autoincrement())
+  companyId Int
+  company   Company   @relation(fields: [companyId], references: [id])
+  name      String
+  size      BigInt
+  type      String
+  location  String
+  thumbnail String
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+}

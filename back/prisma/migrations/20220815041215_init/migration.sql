@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `Company` ADD COLUMN `address` TEXT NULL,
+    ADD COLUMN `city` VARCHAR(191) NULL,
+    ADD COLUMN `country` VARCHAR(191) NULL,
+    ADD COLUMN `zip` VARCHAR(191) NULL;

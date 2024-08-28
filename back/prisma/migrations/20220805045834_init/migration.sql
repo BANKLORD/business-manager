@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Product` ADD COLUMN `stockAlert` DOUBLE NULL DEFAULT 50.00;
